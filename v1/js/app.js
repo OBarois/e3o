@@ -55,19 +55,21 @@ function init() {
     base_globe.scale.set(20, 20, 20);
     scene.add(base_globe);
 
-    sea_texture = THREE.ImageUtils.loadTexture('textures/sea.jpg', THREE.UVMapping, function () {
-        sea_texture.wrapS = THREE.RepeatWrapping;
-        sea_texture.wrapT = THREE.RepeatWrapping;
-        sea_texture.repeat.set(1, 1);
+    sea_texture = THREE.ImageUtils.loadTexture('textures/earth2.png', THREE.UVMapping, function () {
+        //sea_texture.wrapS = THREE.ClampToEdgeWrapping;
+        //sea_texture.wrapT = THREE.ClampToEdgeWrapping;
+         //sea_texture.repeat.set(1, 1);
+         //sea_texture.wrapS = THREE.RepeatWrapping;
+         //sea_texture.offset.x = radians / ( 2 * Math.PI );
         base_globe.add(new THREE.Mesh(
-        new THREE.SphereGeometry(radius, segments, segments),
+        new THREE.SphereGeometry(radius, segments, segments,Math.PI/2.0),
         new THREE.MeshLambertMaterial({
             transparent: true,
             depthTest: true,
             depthWrite: false,
-            opacity: 0.95,
+            opacity: 0.5,
             map: sea_texture,
-            color: 0x6699ff
+            color: 0xffffff
         })));
 
         for (var name in country_data) {
@@ -77,7 +79,9 @@ function init() {
             var color = new THREE.Color(0xff0000);
             color.setHSL(continents.indexOf(country_data[name].data.cont) * (1 / 7), Math.random() * 0.25 + 0.65, Math.random() / 2 + 0.25);
             var mesh = country_data[name].mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({
-                color: color
+                color: color,
+                transparent: true,
+                opacity: 0.5
             }));
             mesh.name = "land";
             mesh.userData.country = name;

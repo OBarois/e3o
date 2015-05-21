@@ -5,8 +5,9 @@
 var camera, scene, renderer, controls, stats;
 var radius = 0.995;
 var base_globe = 0;
+var footprint_layer = 0;
 
-var intersected_object = 0;
+var intersected_object = [];
 var overlay_element = 0;
 var hover_scale = 1.01;
 
@@ -20,10 +21,11 @@ function init() {
         Detector.addGetWebGLMessage();
     }
 
-    renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer({antialias: false});
     renderer.setClearColor(0x000000, 0.0);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.sortObjects = false;
     document.body.appendChild(renderer.domElement);
 
     scene = new THREE.Scene();
@@ -31,7 +33,7 @@ function init() {
     camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 4500);
     camera.position.z = 100;
 
-    scene.add(new THREE.AmbientLight(0x555555));
+    scene.add(new THREE.AmbientLight(0xffffff));
 
     var directionalLight1 = new THREE.DirectionalLight(0xaaaaaa, 0.5);
     directionalLight1.position.set(-1, 1, 1).normalize();
@@ -39,21 +41,24 @@ function init() {
 
     var directionalLight2 = new THREE.DirectionalLight(0xaaaaaa, 0.5);
     directionalLight2.position.set(-1, 1, -1).normalize();
-    scene.add(directionalLight2);
+    //scene.add(directionalLight2);
 
     var directionalLight3 = new THREE.DirectionalLight(0xaaaaaa, 0.5);
     directionalLight3.position.set(1, 1, -1).normalize();
-    scene.add(directionalLight3);
+    //scene.add(directionalLight3);
 
     var directionalLight4 = new THREE.DirectionalLight(0xaaaaaa, 0.5);
     directionalLight4.position.set(1, 1, 1).normalize();
-    scene.add(directionalLight4);
+    //scene.add(directionalLight4);
 
     var segments = 64;
 
     base_globe = new THREE.Object3D();
     base_globe.scale.set(20, 20, 20);
     scene.add(base_globe);
+    footprint_layer = new THREE.Object3D();
+    footprint_layer.scale.set(20, 20, 20);
+    scene.add(footprint_layer);
 
     sea_texture = THREE.ImageUtils.loadTexture('textures/earth2.png', THREE.UVMapping, function () {
         //sea_texture.wrapS = THREE.ClampToEdgeWrapping;
@@ -63,12 +68,14 @@ function init() {
          //sea_texture.offset.x = radians / ( 2 * Math.PI );
         base_globe.add(new THREE.Mesh(
         new THREE.SphereGeometry(radius, segments, segments,Math.PI/2.0),
-        new THREE.MeshLambertMaterial({
+        new THREE.MeshPhongMaterial({
             transparent: true,
             depthTest: true,
-            depthWrite: false,
-            opacity: 0.5,
+            depthWrite: true,
+            opacity: 0.95,
             map: sea_texture,
+            wireframe: false,
+            shininess: 80,
             color: 0xffffff
         })));
 
@@ -81,13 +88,14 @@ function init() {
             var mesh = country_data[name].mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({
                 color: color,
                 transparent: true,
+                wireframe: false,
                 opacity: 0.5
             }));
             mesh.name = "land";
             mesh.userData.country = name;
-            base_globe.add(mesh);
+            footprint_layer.add(mesh);
         }
-    });
+     });
 
     controls = new THREE.TrackballControls(camera, renderer.domElement);
     controls.rotateSpeed = 2.0;
@@ -116,7 +124,11 @@ function onWindowResize() {
 
 function onDocumentMouseMove(event) {
     if (intersected_object !== 0) {
-        intersected_object.scale.set(1.0, 1.0, 1.0);
+        //intersected_object.scale.set(1.0, 1.0, 1.0);
+        //intersected_object.material.opacity = 0.9;
+        for(var i = 0;i < intersected_object.length;i++) {
+                    intersected_object[i].material.opacity = 0.5;
+                }
     }
 
     event.preventDefault();
@@ -124,20 +136,28 @@ function onDocumentMouseMove(event) {
     var mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
     var vector = new THREE.Vector3(mouseX, mouseY, -1);
     vector.unproject(camera);
-    var raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
-    var intersects = raycaster.intersectObject(base_globe, true);
+    var raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize(),0,camera.position.length());
+    var intersects = raycaster.intersectObject(footprint_layer, true);
     if (intersects.length > 0) {
         if (intersects[0].point !== null) {
             if (intersects[0].object.name === "land") {
-                console.log(intersects[0].object.userData.country);
+                //console.log(intersects[0].object.userData.country);
+                //console.log("items: "+intersects.length)
 
                 if (overlay_element === 0) {
                     overlay_element = document.getElementById("overlay");
                 }
-                overlay_element.innerHTML = intersects[0].object.userData.country;
 
-                intersects[0].object.scale.set(hover_scale, hover_scale, hover_scale);
-                intersected_object = intersects[0].object;
+                //intersects[0].object.scale.set(hover_scale, hover_scale, hover_scale);
+                var label = "";
+                for(var i = 0;i < intersects.length;i++) {
+                    intersects[i].object.material.opacity = 0.9;
+                    intersected_object[i] = intersects[i].object;
+                    label = label +" + "+intersects[i].object.userData.country;
+                }
+                overlay_element.innerHTML = label;
+               //intersects[0].object.material.opacity = 0.1;
+                //intersected_object = intersects[0].object;
             } else {
                 overlay_element.innerHTML = "";
             }
@@ -154,4 +174,5 @@ function animate(time) {
     controls.update();
     stats.update();
     renderer.render(scene, camera);
+    //console.log("z"+camera.position.z)
 }

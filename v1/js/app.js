@@ -58,7 +58,7 @@ function init() {
     sea_texture = THREE.ImageUtils.loadTexture('textures/sea.jpg', THREE.UVMapping, function () {
         sea_texture.wrapS = THREE.RepeatWrapping;
         sea_texture.wrapT = THREE.RepeatWrapping;
-        sea_texture.repeat.set(16, 8);
+        sea_texture.repeat.set(1, 1);
         base_globe.add(new THREE.Mesh(
         new THREE.SphereGeometry(radius, segments, segments),
         new THREE.MeshLambertMaterial({
